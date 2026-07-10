@@ -80,6 +80,7 @@
       "space b 8": ["pane::ActivateItem", 7], // 8th buffer
       "space b 9": ["pane::ActivateItem", 8], // 9th buffer
       "space b b": "tab_switcher::ToggleAll", // Show all buffers (across all panes)
+      "space b tab": "pane::AlternateFile", // Switch to previous (last-used) buffer
       "space b d": "pane::CloseActiveItem", // Close active buffer
       "space b h": ["workspace::MoveItemToPaneInDirection", { "direction": "left" }], // Move buffer into left window
       "space b j": ["workspace::MoveItemToPaneInDirection", { "direction": "down" }], // Move buffer into below window
