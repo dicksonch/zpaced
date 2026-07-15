@@ -10,16 +10,28 @@
 //   - Bindings with no Zed equivalent are set to  null  (with a note).
 //
 // Where Spacemacs and VSpaceCode conflict, VSpaceCode is preferred.
-// Leader is `space`, active in normal/visual mode (VimControl && !menu && !insert).
+// Leader is `space`, active in normal/visual mode and on non-editor screens
+// (welcome, extensions, empty panes, etc.).
+//
+// Structure:
+//   Block 1 — Shared: workspace-level bindings available everywhere
+//   Block 2 — Editor: editor-specific bindings (VimControl only)
+//   Block 3 — alt-hjkl: dock-aware pane navigation
 //
 // Tip: install a which-key style extension for the visual menu; these bindings
 // work regardless.
 [
+  // ==========================================================================
+  // Block 1 — Shared workspace-level bindings.
+  // Active in Vim normal/visual mode AND on non-editor screens (welcome,
+  // extensions, empty panes, settings UI, etc.).
+  // Excludes editor-specific operations (text, folds, diff, etc.).
+  // ==========================================================================
   {
-    "context": "VimControl && !menu && vim_mode != insert",
+    "context": "(VimControl && !menu && vim_mode != insert) || (!Editor && !Terminal && !Dock && !menu)",
     "bindings": {
-      // Disable the default `space` action (vim::WrappingRight) so it can act
-      // purely as the leader key for the sequences below.
+      // Disable the default `space` action so it can act purely as the leader
+      // key for the sequences below.
       "space": null,
 
       // ================= Top level =================
@@ -30,9 +42,7 @@
       "space $": "task::Rerun", // Run recent command in terminal // APPROX: reruns last task, not arbitrary recent command
       "space '": "workspace::NewTerminal", // Show terminal
       "space *": "pane::DeploySearch", // Search in project with selection (DeploySearch seeds selection/word)
-      "space .": "vim::Repeat", // Repeat most recent action
       "space /": "pane::DeploySearch", // Search in project
-      "space ;": "editor::ToggleComments", // Toggle comment
       "space ?": "zed::OpenKeymap", // Search keybindings (opens searchable keymap editor)
       "space 0": "project_panel::ToggleFocus", // Focus files explorer
       "space 1": ["workspace::ActivatePane", 0], // Focus 1st window
@@ -43,10 +53,6 @@
       "space 6": ["workspace::ActivatePane", 5], // Focus 6th window
       "space 7": ["workspace::ActivatePane", 6], // Focus 7th window
       "space 8": ["workspace::ActivatePane", 7], // Focus 8th window
-
-      // ================= v : Smart select / expand region =================
-      "space v": "editor::SelectLargerSyntaxNode", // Grow selection
-      "space V": "editor::SelectSmallerSyntaxNode", // Shrink selection
 
       // ================= a : AI / Agent (Zed-specific, not in VSpaceCode) =================
       "space a a": "agent::ToggleFocus", // Toggle/focus agent panel
@@ -68,7 +74,7 @@
       "space : x": null, // Terminate task: no terminate/kill-task action in Zed
       "space : R": null, // Restart running task: no restart action (task::Rerun reruns last, doesn't terminate running)
 
-      // ================= b : Buffers =================
+      // ================= b : Buffers (nav / lifecycle) =================
       "space b 0": "pane::ActivateLastItem", // Last buffer in window
       "space b 1": ["pane::ActivateItem", 0], // First buffer in window
       "space b 2": ["pane::ActivateItem", 1], // 2nd buffer
@@ -97,21 +103,15 @@
       "space b K": ["workspace::MoveItemToPaneInDirection", { "direction": "up" }], // Move buffer into above window
       "space b L": ["workspace::MoveItemToPaneInDirection", { "direction": "right" }], // Move buffer into right window
       "space b M": "pane::CloseOtherItems", // Close other buffers
-      "space b P": ["action::Sequence", ["editor::SelectAll", "editor::Paste"]], // Paste clipboard to whole buffer
-      "space b R": "workspace::ReloadActiveItem", // Revert the current buffer
       "space b T": "pane::TogglePinTab", // Unpin buffer // APPROX: toggles pin
-      "space b Y": ["action::Sequence", ["editor::SelectAll", "editor::Copy"]], // Copy whole buffer to clipboard
       "space b N h": ["workspace::NewFileSplit", "left"], // New untitled buffer (split left)
       "space b N j": ["workspace::NewFileSplit", "down"], // New untitled buffer (split down)
       "space b N k": ["workspace::NewFileSplit", "up"], // New untitled buffer (split up)
       "space b N l": ["workspace::NewFileSplit", "right"], // New untitled buffer (split right)
       "space b N n": "workspace::NewFile", // New untitled buffer
 
-      // ================= c : Compile / Comments =================
+      // ================= c : Compile =================
       "space c c": "task::Spawn", // Compile project // APPROX: no dedicated build action
-      "space c l": "editor::ToggleComments", // Toggle line comment
-      "space c n": "editor::GoToDiagnostic", // Next error
-      "space c N": "editor::GoToPreviousDiagnostic", // Previous error
 
       // ================= d : Debug =================
       "space d c": "debugger::Continue", // Continue debug
@@ -141,19 +141,6 @@
       "space d b E": null, // Enable all breakpoints: no enable-all action in Zed (would need ClearAll which DELETES them)
       "space d b S": "debugger::ToggleIgnoreBreakpoints", // Disable all breakpoints // APPROX: maps to ignore-all (toggle)
 
-      // ================= e : Errors =================
-      "space e e": "editor::Hover", // Show error
-      "space e f": "editor::ToggleCodeActions", // Fix error
-      "space e l": "diagnostics::Deploy", // List errors
-      "space e n": "editor::GoToDiagnostic", // Next error
-      "space e p": "editor::GoToPreviousDiagnostic", // Previous error
-      "space e N": "editor::GoToPreviousDiagnostic", // Previous error
-      // e . : Error transient
-      "space e . f": "editor::ToggleCodeActions", // Fix error
-      "space e . n": "editor::GoToDiagnostic", // Next error
-      "space e . p": "editor::GoToPreviousDiagnostic", // Previous error
-      "space e . N": "editor::GoToPreviousDiagnostic", // Previous error
-
       // ================= f : File =================
       "space f f": "file_finder::Toggle", // Open file/folder (file finder)
       "space f l": "language_selector::Toggle", // Change file language
@@ -177,24 +164,6 @@
       "space f e D": "zed::OpenSettingsFile", // Open settings JSON
       "space f e K": "zed::OpenKeymapFile", // Open global key bindings JSON
       "space f e W": "zed::OpenProjectSettingsFile", // Open workspace settings JSON
-      // f i : Indentation
-      "space f i d": null, // Detect indentation: no Zed action
-      "space f i i": null, // Change indentation: no Zed action (set in settings)
-      "space f i r": "editor::AutoIndent", // Reindent // APPROX: maps to auto-indent
-      "space f i s": "editor::ConvertIndentationToSpaces", // Convert indentation to spaces
-      "space f i t": "editor::ConvertIndentationToTabs", // Convert indentation to tabs
-      "space f i R": "editor::AutoIndent", // Reindent selected // APPROX: auto-indent respects selection
-      // f y : Yank (copy path)
-      "space f y c": "editor::CopyFileLocation", // Copy path with line and column // APPROX: gives RELATIVE path:line (no absolute, no column)
-      "space f y d": "editor::CopyPath", // Copy directory path // APPROX: gives absolute FILE path (includes filename, no dir-only action)
-      "space f y l": "editor::CopyFileLocation", // Copy path with line // APPROX: gives RELATIVE path:line (VSpaceCode wants absolute)
-      "space f y n": "editor::CopyFileName", // Copy filename
-      "space f y y": "editor::CopyPath", // Copy path of active file (absolute)
-      "space f y C": "editor::CopyFileLocation", // Copy relative path with line and column // APPROX: gives relative path:line (no column)
-      "space f y D": "editor::CopyRelativePath", // Copy relative directory path // APPROX: gives relative FILE path (includes filename, no dir-only action)
-      "space f y L": "editor::CopyFileLocation", // Copy relative path with line (relative path:line)
-      "space f y N": "editor::CopyFileNameWithoutExtension", // Copy filename without extension
-      "space f y Y": "editor::CopyRelativePath", // Copy relative path of active file
 
       // ================= g : Git =================
       "space g b": "git::Blame", // Blame file
@@ -214,36 +183,16 @@
       "space h I": "feedback::FileBugReport", // Report issue
       "space h T": "zed::ShowWelcome", // Tutorial // APPROX: opens welcome page
 
-      // ================= i : Insert =================
-      "space i j": "editor::NewlineBelow", // Insert line below
-      "space i k": "editor::NewlineAbove", // Insert line above
-      "space i s": "editor::InsertSnippet", // Insert snippet
-
-      // ================= j : Jump / Join / Split =================
-      "space j +": "editor::Format", // Format buffer
-      "space j =": "editor::FormatSelections", // Format region or buffer // APPROX: formats selections
-      "space j c": "editor::GoToPreviousChange", // Jump to previous change
-      "space j i": "outline::Toggle", // Jump to symbol in buffer
-      "space j j": "vim::PushSneak", // Jump to character // APPROX: uses vim sneak (2-char motion)
-      "space j l": "go_to_line::Toggle", // Jump to line
-      "space j n": "editor::Newline", // Split new line
-      "space j v": "outline::Toggle", // Jump to outline/variables
-      "space j w": "vim::HelixJumpToWord", // Jump to word (Helix-style word jump labels)
-      "space j C": "editor::GoToNextChange", // Jump to next change
+      // ================= j : Jump (project-level) =================
       "space j I": "project_symbols::Toggle", // Jump to symbol in project
 
       // ================= l : Layouts =================
       "space l d": "workspace::CloseProject", // Close workspace (close project)
 
-      // ================= m : Major mode (language-specific) =================
-      // VSpaceCode's `space m` is a conditional per-language menu (LaTeX, Markdown,
-      // Python, Rust, etc.) built from language-extension commands. Zed has no
-      // generic equivalent; bind per-language actions here if desired.
-      "space m": null, // +Major: no generic Zed equivalent (language-specific)
-
       // ================= p : Project =================
       "space p c": "task::Spawn", // Compile project // APPROX: no build action
       "space p f": "file_finder::Toggle", // Find file in project
+      "space p o": "projects::OpenRecent", // Open project
       "space p l": "projects::OpenRecent", // Switch project
       "space p p": "projects::OpenRecent", // Switch project
       "space p t": "project_panel::ToggleFocus", // Show tree/explorer view
@@ -258,140 +207,14 @@
       "space q Q": "zed::Quit", // Quit application
       "space q R": null, // Reload with extensions disabled: no Zed action (workspace::Reload does not disable extensions)
 
-      // ================= r : Resume / Repeat =================
-      "space r .": "vim::Repeat", // Repeat recent actions
+      // ================= r : Resume / Repeat (nav) =================
       "space r b": "tab_switcher::Toggle", // Recent buffers
       "space r s": "pane::DeploySearch", // Search in project
 
-      // ================= s : Search / Symbol =================
-      "space s c": "buffer_search::Dismiss", // Clear highlight
-      "space s e": "editor::Rename", // Edit symbol (rename)
-      "space s h": "editor::GoToNextDocumentHighlight", // Highlight symbol // APPROX: no transient; goto next highlight
-      "space s j": "outline::Toggle", // Jump to symbol in buffer
+      // ================= s : Search (project-level) =================
       "space s p": "pane::DeploySearch", // Search in project
-      "space s r": "editor::FindAllReferences", // Search all references
-      "space s s": "buffer_search::Deploy", // Fuzzy search in current buffer
       "space s J": "project_symbols::Toggle", // Jump to symbol in project
       "space s P": "pane::DeploySearch", // Search in project with selection (DeploySearch seeds selection/word)
-      "space s R": "editor::FindAllReferences", // Search all references in side bar
-      "space s S": "buffer_search::UseSelectionForFind", // Fuzzy search with selection in current buffer
-
-      // ================= t : Toggles =================
-      "space t c": "search::ToggleCaseSensitive", // Toggle find case sensitive
-      "space t l": "editor::ToggleSoftWrap", // Toggle word wrap
-      "space t w": null, // Toggle render whitespace: no render-whitespace toggle action in Zed (set "show_whitespaces" in settings)
-
-      // ================= w : Window =================
-      "space w -": "pane::SplitDown", // Split window below
-      "space w /": "pane::SplitRight", // Split window right
-      "space w 1": null, // Single column layout: no Zed action
-      "space w 2": null, // Double column layout: no Zed action
-      "space w 3": null, // Triple column layout: no Zed action
-      "space w 4": null, // Grid layout: no Zed action
-      "space w =": "workspace::ResetPaneSizes", // Reset window sizes
-      "space w [": "vim::ResizePaneLeft", // Shrink window // APPROX: directional (horizontal) resize; no non-directional shrink
-      "space w ]": "vim::ResizePaneRight", // Enlarge window // APPROX: directional (horizontal) resize; no non-directional enlarge
-      "space w d": "pane::CloseActiveItem", // Close window // APPROX: closes active item
-      "space w h": "workspace::ActivatePaneLeft", // Focus window left
-      "space w j": "workspace::ActivatePaneDown", // Focus window down
-      "space w k": "workspace::ActivatePaneUp", // Focus window up
-      "space w l": "workspace::ActivatePaneRight", // Focus window right
-      "space w m": "workspace::ToggleZoom", // Maximize window
-      "space w o": "workspace::ActivateNextWindow", // Switch frame
-      "space w s": "pane::SplitDown", // Split window below
-      "space w v": "pane::SplitRight", // Split window right
-      "space w w": "workspace::ActivateNextPane", // Focus next window
-      "space w x": "workspace::CloseAllItemsAndPanes", // Close all windows
-      "space w z": "pane::JoinAll", // Combine all buffers // APPROX: joins panes
-      "space w D": "workspace::CloseInactiveTabsAndPanes", // Close all other windows
-      "space w F": "workspace::NewWindow", // Open new empty frame
-      "space w H": "workspace::SwapPaneLeft", // Move window left
-      "space w J": "workspace::SwapPaneDown", // Move window down
-      "space w K": "workspace::SwapPaneUp", // Move window up
-      "space w L": "workspace::SwapPaneRight", // Move window right
-      "space w M": "vim::MaximizePane", // Maximize window without hiding others
-      "space w W": "workspace::ActivatePreviousPane", // Focus previous window
-
-      // ================= x : Text =================
-      "space x .": "editor::ToggleCodeActions", // Quick fix
-      "space x a": "editor::FindAllReferences", // Find all references
-      "space x i": "editor::OrganizeImports", // Organize imports
-      "space x o": "editor::OpenUrl", // Open link
-      "space x r": "editor::Rename", // Rename symbol
-      "space x u": "vim::ConvertToLowerCase", // To lower case
-      "space x J": "editor::MoveLineDown", // Move lines down
-      "space x K": "editor::MoveLineUp", // Move lines up
-      "space x R": "editor::ToggleCodeActions", // Refactor // APPROX: no refactor menu; uses code actions
-      "space x U": "vim::ConvertToUpperCase", // To upper case
-      "space x d w": "editor::Format", // Delete trailing whitespace // APPROX: no trim action; uses format
-      "space x l d": "editor::DuplicateLineDown", // Duplicate lines down
-      "space x l s": "editor::SortLinesCaseInsensitive", // Sort lines ascending
-      "space x l D": "editor::DuplicateLineUp", // Duplicate lines up
-      "space x l S": ["action::Sequence", ["editor::SortLinesCaseInsensitive", "editor::ReverseLines"]], // Sort lines descending (sort asc then reverse)
-      "space x m b": null, // Merge: accept both: no Zed action
-      "space x m c": null, // Merge: accept current: no Zed action
-      "space x m i": null, // Merge: accept incoming: no Zed action
-      "space x m k": null, // Merge: compare current conflict: no Zed action (git::Diff shows working-dir diff, not conflict compare)
-      "space x m n": "editor::GoToHunk", // Merge: next conflict // APPROX: goes to next hunk
-      "space x m s": null, // Merge: accept selection: no Zed action
-      "space x m B": null, // Merge: accept all both: no Zed action
-      "space x m C": null, // Merge: accept all current: no Zed action
-      "space x m I": null, // Merge: accept all incoming: no Zed action
-      "space x m N": "editor::GoToPreviousHunk", // Merge: previous conflict // APPROX: goes to previous hunk
-
-      // ================= z : Zoom / Fold =================
-      // z f : +Frame (UI zoom) transient
-      "space z f +": "zed::IncreaseUiFontSize", // Zoom in
-      "space z f -": "zed::DecreaseUiFontSize", // Zoom out
-      "space z f =": "zed::IncreaseUiFontSize", // Zoom in
-      "space z f 0": "zed::ResetUiFontSize", // Reset zoom
-      "space z f j": "zed::DecreaseUiFontSize", // Zoom out
-      "space z f k": "zed::IncreaseUiFontSize", // Zoom in
-      // z i : +Image preview transient
-      "space z i +": "image_viewer::ZoomIn", // Image preview zoom in
-      "space z i -": "image_viewer::ZoomOut", // Image preview zoom out
-      "space z i =": "image_viewer::ZoomIn", // Image preview zoom in
-      "space z i 0": "image_viewer::ResetZoom", // Image preview reset zoom
-      "space z i j": "image_viewer::ZoomOut", // Image preview zoom out
-      "space z i k": "image_viewer::ZoomIn", // Image preview zoom in
-      // z x : +Font (buffer zoom) transient
-      "space z x +": "zed::IncreaseBufferFontSize", // Zoom in
-      "space z x -": "zed::DecreaseBufferFontSize", // Zoom out
-      "space z x =": "zed::IncreaseBufferFontSize", // Zoom in
-      "space z x 0": "zed::ResetBufferFontSize", // Reset zoom
-      "space z x j": "zed::DecreaseBufferFontSize", // Zoom out
-      "space z x k": "zed::IncreaseBufferFontSize", // Zoom in
-      // z . : +Fold
-      "space z . a": "editor::ToggleFold", // Toggle: around a point
-      "space z . b": null, // Close: all block comments: no Zed action
-      "space z . c": "editor::Fold", // Close: at a point
-      "space z . g": null, // Close: all regions: no Zed action
-      "space z . m": "editor::FoldAll", // Close: all
-      "space z . o": "editor::UnfoldLines", // Open: at a point
-      "space z . r": "editor::UnfoldAll", // Open: all
-      "space z . G": null, // Open: all regions: no Zed action
-      "space z . O": "editor::UnfoldRecursive", // Open: recursively
-      "space z . 1": "editor::FoldAtLevel_1", // Fold at level 1
-      "space z . 2": "editor::FoldAtLevel_2", // Fold at level 2
-      "space z . 3": "editor::FoldAtLevel_3", // Fold at level 3
-      "space z . 4": "editor::FoldAtLevel_4", // Fold at level 4
-      "space z . 5": "editor::FoldAtLevel_5", // Fold at level 5
-      "space z . 6": "editor::FoldAtLevel_6", // Fold at level 6
-      "space z . 7": "editor::FoldAtLevel_7", // Fold at level 7
-      "space z . 8": "editor::FoldAtLevel_8", // Fold at level 8
-      "space z . 9": "editor::FoldAtLevel_9", // Fold at level 9
-
-      // ================= D : Diff / Compare =================
-      "space D c": "editor::DiffClipboardWithSelection", // Compare active file with clipboard // APPROX: compares selection
-      "space D m": null, // Compare current merge conflict: no Zed action (git::Diff shows working-dir diff, not conflict compare)
-      "space D s": "editor::ToggleAllDiffHunks", // Compare active file with saved/HEAD (inline diff hunks)
-      "space D w": null, // Toggle ignore trim whitespace in diff: no Zed action
-      "space D D": "git::CompareWithBranch", // Compare active file with (a specific branch)
-
-      // ================= F : Frame =================
-      "space F n": null, // Duplicate workspace in new frame: no Zed action (NewWindow opens an empty window, does not duplicate)
-      "space F o": "workspace::ActivateNextWindow", // Switch frame
-      "space F N": "workspace::NewWindow", // Open new empty frame
 
       // ================= S : Show =================
       "space S a": "agent::ToggleFocus", // Show AI agent panel (Zed-specific)
@@ -424,16 +247,231 @@
       "space T h": "workspace::ToggleLeftDock", // Toggle left dock
       "space T k": "workspace::ToggleAllDocks", // Toggle all docks (no top dock in Zed)
       "space T l": "workspace::ToggleRightDock", // Toggle right dock
+
+      // ================= w : Window =================
+      "space w -": "pane::SplitDown", // Split window below
+      "space w /": "pane::SplitRight", // Split window right
+      "space w 1": null, // Single column layout: no Zed action
+      "space w 2": null, // Double column layout: no Zed action
+      "space w 3": null, // Triple column layout: no Zed action
+      "space w 4": null, // Grid layout: no Zed action
+      "space w =": "workspace::ResetPaneSizes", // Reset window sizes
+      "space w [": "vim::ResizePaneLeft", // Shrink window // APPROX: directional (horizontal) resize; no non-directional shrink
+      "space w ]": "vim::ResizePaneRight", // Enlarge window // APPROX: directional (horizontal) resize; no non-directional enlarge
+      "space w d": "pane::CloseActiveItem", // Close window // APPROX: closes active item
+      "space w h": "workspace::ActivatePaneLeft", // Focus window left
+      "space w j": "workspace::ActivatePaneDown", // Focus window down
+      "space w k": "workspace::ActivatePaneUp", // Focus window up
+      "space w l": "workspace::ActivatePaneRight", // Focus window right
+      "space w m": "workspace::ToggleZoom", // Maximize window
+      "space w o": "workspace::ActivateNextWindow", // Switch frame
+      "space w s": "pane::SplitDown", // Split window below
+      "space w v": "pane::SplitRight", // Split window right
+      "space w w": "workspace::ActivateNextPane", // Focus next window
+      "space w x": "workspace::CloseAllItemsAndPanes", // Close all windows
+      "space w z": "pane::JoinAll", // Combine all buffers // APPROX: joins panes
+      "space w D": "workspace::CloseInactiveTabsAndPanes", // Close all other windows
+      "space w F": "workspace::NewWindow", // Open new empty frame
+      "space w H": "workspace::SwapPaneLeft", // Move window left
+      "space w J": "workspace::SwapPaneDown", // Move window down
+      "space w K": "workspace::SwapPaneUp", // Move window up
+      "space w L": "workspace::SwapPaneRight", // Move window right
+      "space w M": "vim::MaximizePane", // Maximize window without hiding others
+      "space w W": "workspace::ActivatePreviousPane", // Focus previous window
+
+      // ================= F : Frame =================
+      "space F n": null, // Duplicate workspace in new frame: no Zed action (NewWindow opens an empty window, does not duplicate)
+      "space F o": "workspace::ActivateNextWindow", // Switch frame
+      "space F N": "workspace::NewWindow", // Open new empty frame
+
+      // ================= z : Zoom (font) =================
+      // z f : +Frame (UI zoom) transient
+      "space z f +": "zed::IncreaseUiFontSize", // Zoom in
+      "space z f -": "zed::DecreaseUiFontSize", // Zoom out
+      "space z f =": "zed::IncreaseUiFontSize", // Zoom in
+      "space z f 0": "zed::ResetUiFontSize", // Reset zoom
+      "space z f j": "zed::DecreaseUiFontSize", // Zoom out
+      "space z f k": "zed::IncreaseUiFontSize", // Zoom in
+      // z i : +Image preview transient
+      "space z i +": "image_viewer::ZoomIn", // Image preview zoom in
+      "space z i -": "image_viewer::ZoomOut", // Image preview zoom out
+      "space z i =": "image_viewer::ZoomIn", // Image preview zoom in
+      "space z i 0": "image_viewer::ResetZoom", // Image preview reset zoom
+      "space z i j": "image_viewer::ZoomOut", // Image preview zoom out
+      "space z i k": "image_viewer::ZoomIn", // Image preview zoom in
+      // z x : +Font (buffer zoom) transient
+      "space z x +": "zed::IncreaseBufferFontSize", // Zoom in
+      "space z x -": "zed::DecreaseBufferFontSize", // Zoom out
+      "space z x =": "zed::IncreaseBufferFontSize", // Zoom in
+      "space z x 0": "zed::ResetBufferFontSize", // Reset zoom
+      "space z x j": "zed::DecreaseBufferFontSize", // Zoom out
+      "space z x k": "zed::IncreaseBufferFontSize", // Zoom in
     },
   },
 
-  // Global alt-hjkl: dock-aware focus movement between editor and panels.
-  // Complements `space w hjkl` (which only works in VimControl contexts) by
-  // covering non-vim panels (project, git, debug, collab, outline, agent, terminal).
+  // ==========================================================================
+  // Block 2 — Editor-specific bindings.
+  // Active only in Vim normal/visual mode. These require an open editor buffer
+  // (text transforms, folds, diff, insert, errors, etc.).
+  // ==========================================================================
+  {
+    "context": "VimControl && !menu && vim_mode != insert",
+    "bindings": {
+      // ================= . ; v V : Repeat, comments, select region =================
+      "space .": "vim::Repeat", // Repeat most recent action
+      "space ;": "editor::ToggleComments", // Toggle comment
+      "space v": "editor::SelectLargerSyntaxNode", // Grow selection
+      "space V": "editor::SelectSmallerSyntaxNode", // Shrink selection
+
+      // ================= b : Buffer operations (editor-only) =================
+      "space b P": ["action::Sequence", ["editor::SelectAll", "editor::Paste"]], // Paste clipboard to whole buffer
+      "space b R": "workspace::ReloadActiveItem", // Revert the current buffer
+      "space b Y": ["action::Sequence", ["editor::SelectAll", "editor::Copy"]], // Copy whole buffer to clipboard
+
+      // ================= c : Comments / Diagnostics =================
+      "space c l": "editor::ToggleComments", // Toggle line comment
+      "space c n": "editor::GoToDiagnostic", // Next error
+      "space c N": "editor::GoToPreviousDiagnostic", // Previous error
+
+      // ================= e : Errors =================
+      "space e e": "editor::Hover", // Show error
+      "space e f": "editor::ToggleCodeActions", // Fix error
+      "space e l": "diagnostics::Deploy", // List errors
+      "space e n": "editor::GoToDiagnostic", // Next error
+      "space e p": "editor::GoToPreviousDiagnostic", // Previous error
+      "space e N": "editor::GoToPreviousDiagnostic", // Previous error
+      // e . : Error transient
+      "space e . f": "editor::ToggleCodeActions", // Fix error
+      "space e . n": "editor::GoToDiagnostic", // Next error
+      "space e . p": "editor::GoToPreviousDiagnostic", // Previous error
+      "space e . N": "editor::GoToPreviousDiagnostic", // Previous error
+
+      // ================= f i : Indentation =================
+      "space f i d": null, // Detect indentation: no Zed action
+      "space f i i": null, // Change indentation: no Zed action (set in settings)
+      "space f i r": "editor::AutoIndent", // Reindent // APPROX: maps to auto-indent
+      "space f i s": "editor::ConvertIndentationToSpaces", // Convert indentation to spaces
+      "space f i t": "editor::ConvertIndentationToTabs", // Convert indentation to tabs
+      "space f i R": "editor::AutoIndent", // Reindent selected // APPROX: auto-indent respects selection
+      // f y : Yank (copy path)
+      "space f y c": "editor::CopyFileLocation", // Copy path with line and column // APPROX: gives RELATIVE path:line (no absolute, no column)
+      "space f y d": "editor::CopyPath", // Copy directory path // APPROX: gives absolute FILE path (includes filename, no dir-only action)
+      "space f y l": "editor::CopyFileLocation", // Copy path with line // APPROX: gives RELATIVE path:line (VSpaceCode wants absolute)
+      "space f y n": "editor::CopyFileName", // Copy filename
+      "space f y y": "editor::CopyPath", // Copy path of active file (absolute)
+      "space f y C": "editor::CopyFileLocation", // Copy relative path with line and column // APPROX: gives relative path:line (no column)
+      "space f y D": "editor::CopyRelativePath", // Copy relative directory path // APPROX: gives relative FILE path (includes filename, no dir-only action)
+      "space f y L": "editor::CopyFileLocation", // Copy relative path with line (relative path:line)
+      "space f y N": "editor::CopyFileNameWithoutExtension", // Copy filename without extension
+      "space f y Y": "editor::CopyRelativePath", // Copy relative path of active file
+
+      // ================= i : Insert =================
+      "space i j": "editor::NewlineBelow", // Insert line below
+      "space i k": "editor::NewlineAbove", // Insert line above
+      "space i s": "editor::InsertSnippet", // Insert snippet
+
+      // ================= j : Jump / Join / Split (editor-level) =================
+      "space j +": "editor::Format", // Format buffer
+      "space j =": "editor::FormatSelections", // Format region or buffer // APPROX: formats selections
+      "space j c": "editor::GoToPreviousChange", // Jump to previous change
+      "space j i": "outline::Toggle", // Jump to symbol in buffer
+      "space j j": "vim::PushSneak", // Jump to character // APPROX: uses vim sneak (2-char motion)
+      "space j l": "go_to_line::Toggle", // Jump to line
+      "space j n": "editor::Newline", // Split new line
+      "space j v": "outline::Toggle", // Jump to outline/variables
+      "space j w": "vim::HelixJumpToWord", // Jump to word (Helix-style word jump labels)
+      "space j C": "editor::GoToNextChange", // Jump to next change
+
+      // ================= m : Major mode (language-specific) =================
+      // VSpaceCode's `space m` is a conditional per-language menu (LaTeX, Markdown,
+      // Python, Rust, etc.) built from language-extension commands. Zed has no
+      // generic equivalent; bind per-language actions here if desired.
+      "space m": null, // +Major: no generic Zed equivalent (language-specific)
+
+      // ================= r : Resume / Repeat (editor) =================
+      "space r .": "vim::Repeat", // Repeat recent actions
+
+      // ================= s : Search / Symbol (buffer-level) =================
+      "space s c": "buffer_search::Dismiss", // Clear highlight
+      "space s e": "editor::Rename", // Edit symbol (rename)
+      "space s h": "editor::GoToNextDocumentHighlight", // Highlight symbol // APPROX: no transient; goto next highlight
+      "space s j": "outline::Toggle", // Jump to symbol in buffer
+      "space s r": "editor::FindAllReferences", // Search all references
+      "space s s": "buffer_search::Deploy", // Fuzzy search in current buffer
+      "space s R": "editor::FindAllReferences", // Search all references in side bar
+      "space s S": "buffer_search::UseSelectionForFind", // Fuzzy search with selection in current buffer
+
+      // ================= t : Toggles =================
+      "space t c": "search::ToggleCaseSensitive", // Toggle find case sensitive
+      "space t l": "editor::ToggleSoftWrap", // Toggle word wrap
+      "space t w": null, // Toggle render whitespace: no render-whitespace toggle action in Zed (set "show_whitespaces" in settings)
+
+      // ================= x : Text =================
+      "space x .": "editor::ToggleCodeActions", // Quick fix
+      "space x a": "editor::FindAllReferences", // Find all references
+      "space x i": "editor::OrganizeImports", // Organize imports
+      "space x o": "editor::OpenUrl", // Open link
+      "space x r": "editor::Rename", // Rename symbol
+      "space x u": "vim::ConvertToLowerCase", // To lower case
+      "space x J": "editor::MoveLineDown", // Move lines down
+      "space x K": "editor::MoveLineUp", // Move lines up
+      "space x R": "editor::ToggleCodeActions", // Refactor // APPROX: no refactor menu; uses code actions
+      "space x U": "vim::ConvertToUpperCase", // To upper case
+      "space x d w": "editor::Format", // Delete trailing whitespace // APPROX: no trim action; uses format
+      "space x l d": "editor::DuplicateLineDown", // Duplicate lines down
+      "space x l s": "editor::SortLinesCaseInsensitive", // Sort lines ascending
+      "space x l D": "editor::DuplicateLineUp", // Duplicate lines up
+      "space x l S": ["action::Sequence", ["editor::SortLinesCaseInsensitive", "editor::ReverseLines"]], // Sort lines descending (sort asc then reverse)
+      "space x m b": null, // Merge: accept both: no Zed action
+      "space x m c": null, // Merge: accept current: no Zed action
+      "space x m i": null, // Merge: accept incoming: no Zed action
+      "space x m k": null, // Merge: compare current conflict: no Zed action (git::Diff shows working-dir diff, not conflict compare)
+      "space x m n": "editor::GoToHunk", // Merge: next conflict // APPROX: goes to next hunk
+      "space x m s": null, // Merge: accept selection: no Zed action
+      "space x m B": null, // Merge: accept all both: no Zed action
+      "space x m C": null, // Merge: accept all current: no Zed action
+      "space x m I": null, // Merge: accept all incoming: no Zed action
+      "space x m N": "editor::GoToPreviousHunk", // Merge: previous conflict // APPROX: goes to previous hunk
+
+      // ================= z . : Fold =================
+      "space z . a": "editor::ToggleFold", // Toggle: around a point
+      "space z . b": null, // Close: all block comments: no Zed action
+      "space z . c": "editor::Fold", // Close: at a point
+      "space z . g": null, // Close: all regions: no Zed action
+      "space z . m": "editor::FoldAll", // Close: all
+      "space z . o": "editor::UnfoldLines", // Open: at a point
+      "space z . r": "editor::UnfoldAll", // Open: all
+      "space z . G": null, // Open: all regions: no Zed action
+      "space z . O": "editor::UnfoldRecursive", // Open: recursively
+      "space z . 1": "editor::FoldAtLevel_1", // Fold at level 1
+      "space z . 2": "editor::FoldAtLevel_2", // Fold at level 2
+      "space z . 3": "editor::FoldAtLevel_3", // Fold at level 3
+      "space z . 4": "editor::FoldAtLevel_4", // Fold at level 4
+      "space z . 5": "editor::FoldAtLevel_5", // Fold at level 5
+      "space z . 6": "editor::FoldAtLevel_6", // Fold at level 6
+      "space z . 7": "editor::FoldAtLevel_7", // Fold at level 7
+      "space z . 8": "editor::FoldAtLevel_8", // Fold at level 8
+      "space z . 9": "editor::FoldAtLevel_9", // Fold at level 9
+
+      // ================= D : Diff / Compare =================
+      "space D c": "editor::DiffClipboardWithSelection", // Compare active file with clipboard // APPROX: compares selection
+      "space D m": null, // Compare current merge conflict: no Zed action (git::Diff shows working-dir diff, not conflict compare)
+      "space D s": "editor::ToggleAllDiffHunks", // Compare active file with saved/HEAD (inline diff hunks)
+      "space D w": null, // Toggle ignore trim whitespace in diff: no Zed action
+      "space D D": "git::CompareWithBranch", // Compare active file with (a specific branch)
+    },
+  },
+
+  // ==========================================================================
+  // Block 3 — Global alt-hjkl: dock-aware focus movement between editor and
+  // panels. Complements `space w hjkl` (which only works in VimControl
+  // contexts) by covering non-vim panels (project, git, debug, collab,
+  // outline, agent, terminal).
   //   - Editor: excluded when an edit prediction is showing, so alt-l/k/j keep
   //     accepting predictions (Zed's `Editor && edit_prediction` block wins).
   //   - GitPanel: excludes CommitEditor so alt-l = generate-commit-message survives.
   //   - Terminal: included so you can alt-k out of the terminal.
+  // ==========================================================================
   {
     "context": "(Editor && !edit_prediction) || ProjectPanel || (GitPanel && !CommitEditor) || DebugPanel || CollabPanel || OutlinePanel || AgentPanel || Terminal",
     "bindings": {

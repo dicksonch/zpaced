@@ -17,9 +17,9 @@ Where Spacemacs and VSpaceCode disagree, **VSpaceCode's layout is preferred**.
   { "vim_mode": true }
   ```
 
-  The leader key is `space`, active in normal/visual mode
-  (`VimControl && !menu && vim_mode != insert`), so it never interferes with
-  typing a literal space while inserting text.
+  The leader key is `space`, active in normal/visual mode **and on non-editor
+  screens** (welcome, extensions, empty panes, settings UI, etc.). It never
+  interferes with typing a literal space while inserting text.
 
 ## Installation
 
@@ -76,6 +76,19 @@ The bindings mirror VSpaceCode's default menu tree. Top-level groups:
   panel (project, git, debug, collab, outline, agent, terminal). This is a fast,
   mouse-free complement to `SPC w h/j/k/l`, which only works inside vim contexts.
   It preserves edit-prediction accepts and git commit-message generation.
+
+### Keymap structure
+
+The keymap is split into three context blocks to keep every binding DRY:
+
+| Block | Context | Purpose |
+| ----- | ------- | ------- |
+| 1 (Shared) | `(VimControl && !menu && vim_mode != insert) \|\| (!Editor && !Terminal && !Dock && !menu)` | Workspace-level bindings — files, projects, git, windows, panels, UI toggles, debug, tasks, help. Active everywhere. |
+| 2 (Editor) | `VimControl && !menu && vim_mode != insert` | Editor-specific bindings — text transforms, folds, diff, insert, errors, copy-path, comments. Active only in vim normal/visual mode. |
+| 3 (Dock nav) | `(Editor && !edit_prediction) \|\| ProjectPanel \|\| ...` | `alt-h/j/k/l` pane navigation across docks and panels. |
+
+This means `SPC f f`, `SPC p p`, `SPC S`, and all workspace-level commands work
+from the welcome screen, extensions, and any empty pane — no editor needed.
 
 ## Conventions in the keymap comments
 
